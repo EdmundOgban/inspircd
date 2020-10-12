@@ -285,12 +285,13 @@ class ModuleCloaking : public Module
 			bindata = std::string((const char*)ip.in6.sin6_addr.s6_addr, 16);
 			hop1 = 8;
 			hop2 = 6;
+            // used for full cloaking
 			hop3 = 4;
 			len1 = 6;
 			len2 = 4;
-			// pfx s1.s2.s3. (xxxx.xxxx or s4) sfx
+			// pfx s1.s2.s3. (xxxxxxxx.xxxxxxxx or s4) sfx
 			//     6  4  4    9/6
-			rv.reserve(info.prefix.length() + 26 + info.suffix.length());
+			rv.reserve(info.prefix.length() + 32 + info.suffix.length());
 		}
 		else
 		{
@@ -326,7 +327,9 @@ class ModuleCloaking : public Module
 		{
 			if (ip.family() == AF_INET6)
 			{
-				rv.append(InspIRCd::Format(".%02x%02x.%02x%02x%s",
+                rv.append(InspIRCd::Format(".%02x%02x%02x%02x.%02x%02x%02x%02x%s",
+					ip.in6.sin6_addr.s6_addr[6], ip.in6.sin6_addr.s6_addr[7],
+					ip.in6.sin6_addr.s6_addr[4], ip.in6.sin6_addr.s6_addr[5],
 					ip.in6.sin6_addr.s6_addr[2], ip.in6.sin6_addr.s6_addr[3],
 					ip.in6.sin6_addr.s6_addr[0], ip.in6.sin6_addr.s6_addr[1], info.suffix.c_str()));
 			}
