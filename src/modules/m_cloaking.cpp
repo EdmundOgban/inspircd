@@ -290,7 +290,7 @@ class ModuleCloaking : public Module
 			// for full cloaking
 			hop3 = 4;
 
-			len1 = len2 = len3 = 5;
+			len1 = len2 = len3 = 6;
 			// pfx s1.s2. (xxxxxxxx.xxxxxxxx or s3.s4) sfx
 			//     5  5    8        8           5  5
 			rv.reserve(info.prefix.length() + 32 + info.suffix.length());
