@@ -291,21 +291,20 @@ class ModuleCloaking : public Module
 			hop3 = 4;
 
 			len1 = len2 = len3 = 5;
-			// pfx s1.s2.s3. (xxxxxxxx.xxxxxxxx or s4) sfx
-			//     5  5  5    8        8
+			// pfx s1.s2. (xxxxxxxx.xxxxxxxx or s3.s4) sfx
+			//     5  5    8        8           5  5
 			rv.reserve(info.prefix.length() + 32 + info.suffix.length());
 		}
 		else
 		{
 			bindata = std::string((const char*)&ip.in4.sin_addr, 4);
 			hop1 = 3;
-			hop2 = 0;
+			hop2 = full ? 2 : 0;
 			// for full cloaking
-			hop3 = 2;
+			hop3 = full ? 1 : 2;
 
-			len1 = len2 = 3;
-            len3 = 6;
-			// pfx s1.s2. (xxx.xxx or s3) sfx
+			len1 = len2 = len3 = 3;
+			// pfx s1.s2. (xxx.xxx or s3.s4) sfx
 			rv.reserve(info.prefix.length() + 15 + info.suffix.length());
 		}
 
