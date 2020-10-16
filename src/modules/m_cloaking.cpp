@@ -111,8 +111,10 @@ void encode_base58(std::string &rv, size_t len) {
     size_t b58_len, carry, i;
     std::vector<unsigned short> b58_bytes;
 
-    for (auto c: rv)
+    for (std::string::const_iterator it = rv.begin(); it != rv.end(); ++it)
     {
+        char c = *it;
+
         if (!encode) {
             if (c == 0) {
                 zeroes++;
