@@ -546,10 +546,10 @@ class ModuleCloaking : public Module
 			if (stdalgo::string::equalsci(mode, "half"))
 			{
 				unsigned int domainparts = tag->getUInt("domainparts", 3, 1, 10);
-				newcloaks.push_back(CloakInfo(MODE_HALF_CLOAK, key, prefix, suffix, ignorecase, domainparts));
+				newcloaks.push_back(CloakInfo(MODE_HALF_CLOAK, encoding, key, prefix, suffix, ignorecase, domainparts));
 			}
 			else if (stdalgo::string::equalsci(mode, "full"))
-				newcloaks.push_back(CloakInfo(MODE_OPAQUE, key, prefix, suffix, ignorecase));
+				newcloaks.push_back(CloakInfo(MODE_OPAQUE, encoding, key, prefix, suffix, ignorecase));
 			else
 				throw ModuleException(mode + " is an invalid value for <cloak:mode>; acceptable values are 'half' and 'full', at " + tag->getTagLocation());
 		}
