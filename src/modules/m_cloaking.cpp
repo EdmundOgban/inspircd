@@ -537,7 +537,7 @@ class ModuleCloaking : public Module
             const std::string encoding = tag->getString("encoding", "base32");
             if (!stdalgo::string::equalsci(encoding, "base32") &&
                 !stdalgo::string::equalsci(encoding, "base58"))
-                throw ModuleException(mode + " is an invalid value for <cloak:encoding>; acceptable values are 'base32' and 'base58', at " + tag->getTagLocation());
+                throw ModuleException(encoding + " is an invalid value for <cloak:encoding>; acceptable values are 'base32' and 'base58', at " + tag->getTagLocation());
 
 			const bool ignorecase = tag->getBool("ignorecase");
 			const std::string mode = tag->getString("mode");
