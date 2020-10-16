@@ -534,9 +534,13 @@ class ModuleCloaking : public Module
 			if (i == tags.first && key.length() < minkeylen)
 				throw ModuleException("Your cloaking key is not secure. It should be at least " + ConvToStr(minkeylen) + " characters long, at " + tag->getTagLocation());
 
+            CloakEncoding coding;
             const std::string encoding = tag->getString("encoding", "base32");
-            if (!stdalgo::string::equalsci(encoding, "base32") &&
-                !stdalgo::string::equalsci(encoding, "base58"))
+            if (stdalgo::string::equalsci(encoding, "base32"))
+                coding = ENCODING_BASE32;
+            else if (stdalgo::string::equalsci(encoding, "base58"))
+                coding = ENCODING_BASE58;
+            else
                 throw ModuleException(encoding + " is an invalid value for <cloak:encoding>; acceptable values are 'base32' and 'base58', at " + tag->getTagLocation());
 
 			const bool ignorecase = tag->getBool("ignorecase");
@@ -546,10 +550,11 @@ class ModuleCloaking : public Module
 			if (stdalgo::string::equalsci(mode, "half"))
 			{
 				unsigned int domainparts = tag->getUInt("domainparts", 3, 1, 10);
-				newcloaks.push_back(CloakInfo(MODE_HALF_CLOAK, encoding, key, prefix, suffix, ignorecase, domainparts));
+				newcloaks.push_back(CloakInfo(MODE_HALF_CLOAK, coding, key, prefix, suffix, ignorecase, domainparts));
+
 			}
 			else if (stdalgo::string::equalsci(mode, "full"))
-				newcloaks.push_back(CloakInfo(MODE_OPAQUE, encoding, key, prefix, suffix, ignorecase));
+				newcloaks.push_back(CloakInfo(MODE_OPAQUE, coding, key, prefix, suffix, ignorecase));
 			else
 				throw ModuleException(mode + " is an invalid value for <cloak:mode>; acceptable values are 'half' and 'full', at " + tag->getTagLocation());
 		}
