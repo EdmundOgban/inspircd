@@ -41,8 +41,19 @@ enum CloakMode
 	MODE_OPAQUE
 };
 
+enum CloakEncoding
+{
+    /** InspIRCd original encoding */
+    ENCODING_BASE32,
+
+    ENCODING_BASE58
+}
+
 // lowercase-only encoding similar to base64, used for hash output
 static const char base32[] = "0123456789abcdefghijklmnopqrstuv";
+
+// base58 character set, used for hash output
+static const char base58[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 // The minimum length of a cloak key.
 static const size_t minkeylen = 30;
@@ -51,6 +62,9 @@ struct CloakInfo
 {
 	// The method used for cloaking users.
 	CloakMode mode;
+
+	// The encoding used for the cloaks.
+    CloakEncoding encoding;
 
 	// The number of parts of the hostname shown when using half cloaking.
 	unsigned int domainparts;
@@ -67,8 +81,9 @@ struct CloakInfo
 	// The suffix for IP cloaks (e.g. .IP).
 	std::string suffix;
 
-	CloakInfo(CloakMode Mode, const std::string& Key, const std::string& Prefix, const std::string& Suffix, bool IgnoreCase, unsigned int DomainParts = 0)
+	CloakInfo(CloakMode Mode, CloakEncoding Encoding, const std::string& Key, const std::string& Prefix, const std::string& Suffix, bool IgnoreCase, unsigned int DomainParts = 0)
 		: mode(Mode)
+        , encoding(Encoding)
 		, domainparts(DomainParts)
 		, ignorecase(IgnoreCase)
 		, key(Key)
@@ -79,6 +94,71 @@ struct CloakInfo
 };
 
 typedef std::vector<std::string> CloakList;
+
+void encode_base32(std::string &rv, size_t len) {
+    for(size_t i = 0; i < len; i++)
+    {
+        // this discards 3 bits per byte. We have an
+        // overabundance of bits in the hash output, doesn't
+        // matter which ones we are discarding.
+        rv[i] = base32[rv[i] & 0x1F];
+    }
+}
+
+void encode_base58(std::string &rv, size_t len) {
+    size_t zeroes = 0;
+    bool encode = false;
+    size_t b58_len, carry, i;
+    std::vector<unsigned short> b58_bytes;
+
+    for (auto c: rv)
+    {
+        if (!encode) {
+            if (c == 0) {
+                zeroes++;
+                continue;
+            }
+            else {
+                encode = true;
+                b58_bytes.push_back(0);
+            }
+        }
+
+        carry = 0;
+        b58_len = b58_bytes.size();
+
+        for (i = 0; i < b58_len; i++)
+            b58_bytes[i] <<= 8;
+
+        b58_bytes[0] += c;
+        for (i = 0; i < b58_len; i++)
+        {
+            b58_bytes[i] += carry;
+            carry = b58_bytes[i] / 58;
+            b58_bytes[i] %= 58;
+        }
+
+        while (carry > 0)
+        {
+            b58_bytes.push_back(carry % 58);
+            carry /= 58;
+        }
+    }
+
+    zeroes = std::min(zeroes, rv.size());
+    for (i = 0; i < zeroes; i++)
+        rv[i] = base58[0];
+
+    i = 0;
+    len = std::min(len, rv.size() - zeroes);
+    typedef std::vector<unsigned short>::const_reverse_iterator iter_t;
+    for (iter_t it = b58_bytes.rbegin(); it != b58_bytes.rend(); ++it)
+    {
+        rv[i+zeroes] = base58[*it];
+        if (++i == len)
+            break;
+    }
+}
 
 /** Handles user mode +x
  */
@@ -264,13 +344,15 @@ class ModuleCloaking : public Module
 			input.append(item);
 
 		std::string rv = Hash->GenerateRaw(input).substr(0,len);
-		for(size_t i = 0; i < len; i++)
-		{
-			// this discards 3 bits per byte. We have an
-			// overabundance of bits in the hash output, doesn't
-			// matter which ones we are discarding.
-			rv[i] = base32[rv[i] & 0x1F];
-		}
+        switch (info.encoding) {
+            case ENCODING_BASE32:
+                encode_base32(rv, len);
+            break;
+            case ENCODING_BASE58:
+                encode_base58(rv, len);
+            break;
+        }
+
 		return rv;
 	}
 
@@ -452,6 +534,11 @@ class ModuleCloaking : public Module
 			if (i == tags.first && key.length() < minkeylen)
 				throw ModuleException("Your cloaking key is not secure. It should be at least " + ConvToStr(minkeylen) + " characters long, at " + tag->getTagLocation());
 
+            const std::string encoding = tag->getString("encoding", "base32");
+            if (!stdalgo::string::equalsci(encoding, "base32") &&
+                !stdalgo::string::equalsci(encoding, "base58"))
+                throw ModuleException(mode + " is an invalid value for <cloak:encoding>; acceptable values are 'base32' and 'base58', at " + tag->getTagLocation());
+
 			const bool ignorecase = tag->getBool("ignorecase");
 			const std::string mode = tag->getString("mode");
 			const std::string prefix = tag->getString("prefix");
@@ -483,7 +570,7 @@ class ModuleCloaking : public Module
 			case MODE_HALF_CLOAK:
 			{
 				if (!host_is_ip)
-					chost = info.prefix + SegmentCloak(info, host, 1, 6) + VisibleDomainParts(host, info.domainparts);
+					chost = info.prefix + SegmentCloak(info, host, 1, 9) + VisibleDomainParts(host, info.domainparts);
 				if (chost.empty() || chost.length() > 50)
 					chost = SegmentIP(info, ip, false);
 				break;
