@@ -47,7 +47,7 @@ enum CloakEncoding
     ENCODING_BASE32,
 
     ENCODING_BASE58
-}
+};
 
 // lowercase-only encoding similar to base64, used for hash output
 static const char base32[] = "0123456789abcdefghijklmnopqrstuv";
